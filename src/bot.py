@@ -146,23 +146,14 @@ class MadridAppointmentBot:
         logger.info("Buscando banner de cookies...")
 
         selectores_cookies = [
-            (By.ID, "aceptarCookies"),
-            (By.ID, "acceptCookies"),
-            (By.ID, "cookie-accept"),
-            (By.ID, "onetrust-accept-btn-handler"),
-            (By.CSS_SELECTOR, "button[id*='cookie']"),
-            (By.CSS_SELECTOR, "button[id*='Cookie']"),
-            (By.CSS_SELECTOR, "a[id*='cookie']"),
+            # Específico para Madrid.es - "Aceptar todas"
+            (By.XPATH, "//button[text()='Aceptar todas']"),
+            (By.XPATH, "//button[contains(text(), 'Aceptar todas')]"),
+            # Genéricos
             (By.XPATH, "//button[contains(text(), 'Aceptar')]"),
             (By.XPATH, "//button[contains(text(), 'ACEPTAR')]"),
-            (By.XPATH, "//button[contains(text(), 'Acepto')]"),
-            (By.XPATH, "//a[contains(text(), 'Aceptar')]"),
-            (By.XPATH, "//a[contains(text(), 'ACEPTAR')]"),
-            (By.XPATH, "//*[contains(@class, 'cookie')]//button"),
-            (By.XPATH, "//*[contains(@class, 'cookie')]//a"),
-            (By.CSS_SELECTOR, ".cookie-accept"),
-            (By.CSS_SELECTOR, ".accept-cookies"),
-            (By.CSS_SELECTOR, "[data-accept-cookies]"),
+            (By.ID, "aceptarCookies"),
+            (By.ID, "acceptCookies"),
         ]
 
         for by, value in selectores_cookies:
@@ -186,21 +177,16 @@ class MadridAppointmentBot:
         logger.info("Buscando opción 'Acceso sin identificar'...")
 
         selectores_acceso = [
-            (By.XPATH, "//a[contains(text(), 'sin identificar')]"),
-            (By.XPATH, "//a[contains(text(), 'Sin identificar')]"),
-            (By.XPATH, "//a[contains(text(), 'SIN IDENTIFICAR')]"),
+            # Específico para Madrid.es - "Acceso SIN Identificar"
+            (By.XPATH, "//button[contains(text(), 'SIN Identificar')]"),
+            (By.XPATH, "//button[contains(text(), 'Acceso SIN')]"),
+            (By.XPATH, "//a[contains(text(), 'SIN Identificar')]"),
+            (By.XPATH, "//a[contains(text(), 'Acceso SIN')]"),
+            (By.XPATH, "//*[contains(text(), 'Acceso SIN Identificar')]"),
+            # Variantes
             (By.XPATH, "//button[contains(text(), 'sin identificar')]"),
-            (By.XPATH, "//button[contains(text(), 'Sin identificar')]"),
-            (By.XPATH, "//*[contains(text(), 'Acceso sin identificar')]"),
-            (By.XPATH, "//*[contains(text(), 'acceso sin identificar')]"),
-            (By.XPATH, "//a[contains(@href, 'sinIdentificar')]"),
-            (By.XPATH, "//a[contains(@href, 'anonimo')]"),
-            (By.XPATH, "//input[@value='Acceso sin identificar']"),
-            (By.CSS_SELECTOR, "a[href*='sinIdentificar']"),
-            (By.CSS_SELECTOR, "a[href*='anonimo']"),
-            (By.CSS_SELECTOR, ".acceso-anonimo"),
-            (By.CSS_SELECTOR, ".sin-identificar"),
-            (By.LINK_TEXT, "Acceso sin identificar"),
+            (By.XPATH, "//a[contains(text(), 'sin identificar')]"),
+            (By.PARTIAL_LINK_TEXT, "SIN Identificar"),
             (By.PARTIAL_LINK_TEXT, "sin identificar"),
         ]
 

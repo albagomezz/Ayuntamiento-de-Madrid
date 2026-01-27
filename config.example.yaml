@@ -11,16 +11,16 @@ personal:
 
 # Configuración del trámite
 tramite:
-  # Categoría: "Padrón" para empadronamiento
-  categoria: "Padrón"
-  # Trámite específico (ejemplos):
-  # - "Alta en el padrón"
-  # - "Cambio de domicilio"
-  # - "Certificado o volante de empadronamiento"
-  nombre: "Alta en el padrón"
+  # Categoría (nombre exacto del dropdown)
+  categoria: "Padrón y censo"
+  # Trámite específico (nombre exacto del dropdown)
+  # Opciones comunes:
+  # - "Altas, bajas y cambio de domicilio en Padrón"
+  # - "Certificados y volantes de empadronamiento"
+  nombre: "Altas, bajas y cambio de domicilio en Padrón"
 
-# Preferencias de oficina (opcional, dejar vacío para cualquiera)
-# Ejemplos: "Línea Madrid Centro", "Línea Madrid Arganzuela", etc.
+# Preferencias de oficina (opcional, dejar vacío para cualquiera disponible)
+# Ejemplos: "Línea Madrid Moncloa-Aravaca", "Línea Madrid Centro", etc.
 oficinas_preferidas: []
 
 # Preferencias de horario (opcional)

@@ -325,33 +325,29 @@ class MadridAppointmentBot:
             logger.error(f"Error seleccionando trámite: {e}")
             return False
 
-    def hacer_click_continuar(self) -> bool:
-        """Hace clic en el botón de continuar/siguiente."""
-        logger.info("Buscando botón continuar...")
+    def hacer_click_siguiente(self) -> bool:
+        """Hace clic en el botón de Siguiente."""
+        logger.info("Buscando botón Siguiente...")
 
         selectores_boton = [
-            (By.ID, "botonContinuar"),
-            (By.ID, "btnContinuar"),
-            (By.ID, "continuar"),
-            (By.NAME, "continuar"),
-            (By.CSS_SELECTOR, "input[type='submit']"),
-            (By.CSS_SELECTOR, "button[type='submit']"),
-            (By.XPATH, "//input[@value='Continuar']"),
-            (By.XPATH, "//button[contains(text(), 'Continuar')]"),
-            (By.XPATH, "//input[contains(@value, 'ontinuar')]"),
-            (By.XPATH, "//a[contains(text(), 'Continuar')]"),
-            (By.XPATH, "//*[contains(@class, 'continuar')]"),
-            (By.XPATH, "//input[@value='Siguiente']"),
+            # Específico para Madrid.es
+            (By.XPATH, "//button[text()='Siguiente']"),
             (By.XPATH, "//button[contains(text(), 'Siguiente')]"),
+            (By.XPATH, "//input[@value='Siguiente']"),
+            # Genéricos
+            (By.CSS_SELECTOR, "button[type='submit']"),
+            (By.CSS_SELECTOR, "input[type='submit']"),
+            (By.XPATH, "//button[contains(text(), 'Continuar')]"),
+            (By.XPATH, "//input[@value='Continuar']"),
         ]
 
         for by, value in selectores_boton:
             if self._wait_and_click(by, value, timeout=5):
-                logger.info("Botón continuar pulsado")
+                logger.info("Botón Siguiente pulsado")
                 time.sleep(2)
                 return True
 
-        logger.warning("No se encontró botón de continuar")
+        logger.warning("No se encontró botón de Siguiente")
         return False
 
     def seleccionar_oficina(self) -> bool:
@@ -719,18 +715,16 @@ class MadridAppointmentBot:
             # Paso 4: Seleccionar categoría
             if not self.seleccionar_categoria():
                 logger.warning("No se pudo seleccionar la categoría")
-                # Continuar de todos modos, puede que ya esté seleccionada
 
             # Paso 5: Seleccionar trámite
             if not self.seleccionar_tramite():
                 logger.warning("No se pudo seleccionar el trámite")
 
-            # Paso 6: Continuar
-            self.hacer_click_continuar()
-
-            # Paso 7: Seleccionar oficina si es necesario
+            # Paso 6: Seleccionar oficina (misma página)
             self.seleccionar_oficina()
-            self.hacer_click_continuar()
+
+            # Paso 7: Clic en Siguiente
+            self.hacer_click_siguiente()
 
             # Paso 8: Buscar citas disponibles
             citas = self.buscar_citas_disponibles()
@@ -752,7 +746,7 @@ class MadridAppointmentBot:
 
             # Paso 10: Seleccionar hora
             self.seleccionar_hora()
-            self.hacer_click_continuar()
+            self.hacer_click_siguiente()
 
             # Paso 11: Rellenar datos personales
             self.rellenar_datos_personales()

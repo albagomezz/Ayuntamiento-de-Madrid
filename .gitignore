@@ -1,0 +1,33 @@
+# Configuración personal (contiene datos sensibles)
+config.yaml
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+ENV/
+
+# Screenshots y logs
+*.png
+*.log
+
+# Excepción: requirements.txt sí se debe incluir
+!requirements.txt
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# Instalación local de ChromeDriver
+chromedriver*

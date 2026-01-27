@@ -1,0 +1,61 @@
+# Configuración del Bot de Citas - Ayuntamiento de Madrid
+# Copia este archivo a config.yaml y rellena tus datos
+
+# Datos personales para la cita
+personal:
+  nombre: "Tu Nombre"
+  apellidos: "Tus Apellidos"
+  dni: "12345678A"
+  telefono: "600000000"
+  email: "tu@email.com"
+
+# Configuración del trámite
+tramite:
+  # Categoría: "Padrón" para empadronamiento
+  categoria: "Padrón"
+  # Trámite específico (ejemplos):
+  # - "Alta en el padrón"
+  # - "Cambio de domicilio"
+  # - "Certificado o volante de empadronamiento"
+  nombre: "Alta en el padrón"
+
+# Preferencias de oficina (opcional, dejar vacío para cualquiera)
+# Ejemplos: "Línea Madrid Centro", "Línea Madrid Arganzuela", etc.
+oficinas_preferidas: []
+
+# Preferencias de horario (opcional)
+horario:
+  # Días preferidos (1=Lunes, 5=Viernes)
+  dias_preferidos: [1, 2, 3, 4, 5]
+  # Rango horario preferido (formato 24h)
+  hora_minima: "09:00"
+  hora_maxima: "14:00"
+
+# Configuración del bot
+bot:
+  # Intervalo entre comprobaciones (en segundos)
+  intervalo_comprobacion: 30
+  # Número máximo de reintentos por sesión
+  max_reintentos: 5
+  # Modo headless (sin ventana visible)
+  headless: false
+  # Timeout para cargar páginas (segundos)
+  timeout: 30
+
+# Notificaciones por Telegram (opcional)
+telegram:
+  enabled: false
+  # Obtén el token de @BotFather en Telegram
+  bot_token: "TU_BOT_TOKEN"
+  # Tu chat_id (usa @userinfobot para obtenerlo)
+  chat_id: "TU_CHAT_ID"
+
+# Notificaciones por Email (opcional)
+email:
+  enabled: false
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  sender_email: "tu@gmail.com"
+  # Para Gmail, usa una "contraseña de aplicación"
+  sender_password: "tu_app_password"
+  recipient_email: "tu@email.com"

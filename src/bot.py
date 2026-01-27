@@ -141,6 +141,98 @@ class MadridAppointmentBot:
             logger.error(f"Error navegando a la página inicial: {e}")
             return False
 
+    def aceptar_cookies(self) -> bool:
+        """Acepta el banner de cookies si aparece."""
+        logger.info("Buscando banner de cookies...")
+
+        selectores_cookies = [
+            (By.ID, "aceptarCookies"),
+            (By.ID, "acceptCookies"),
+            (By.ID, "cookie-accept"),
+            (By.ID, "onetrust-accept-btn-handler"),
+            (By.CSS_SELECTOR, "button[id*='cookie']"),
+            (By.CSS_SELECTOR, "button[id*='Cookie']"),
+            (By.CSS_SELECTOR, "a[id*='cookie']"),
+            (By.XPATH, "//button[contains(text(), 'Aceptar')]"),
+            (By.XPATH, "//button[contains(text(), 'ACEPTAR')]"),
+            (By.XPATH, "//button[contains(text(), 'Acepto')]"),
+            (By.XPATH, "//a[contains(text(), 'Aceptar')]"),
+            (By.XPATH, "//a[contains(text(), 'ACEPTAR')]"),
+            (By.XPATH, "//*[contains(@class, 'cookie')]//button"),
+            (By.XPATH, "//*[contains(@class, 'cookie')]//a"),
+            (By.CSS_SELECTOR, ".cookie-accept"),
+            (By.CSS_SELECTOR, ".accept-cookies"),
+            (By.CSS_SELECTOR, "[data-accept-cookies]"),
+        ]
+
+        for by, value in selectores_cookies:
+            try:
+                elemento = self.driver.find_element(by, value)
+                if elemento.is_displayed():
+                    self._safe_click(elemento)
+                    logger.info("Cookies aceptadas")
+                    time.sleep(1)
+                    return True
+            except NoSuchElementException:
+                continue
+            except Exception:
+                continue
+
+        logger.info("No se encontró banner de cookies (puede que ya estén aceptadas)")
+        return True
+
+    def seleccionar_acceso_sin_identificar(self) -> bool:
+        """Selecciona la opción de acceso sin identificar."""
+        logger.info("Buscando opción 'Acceso sin identificar'...")
+
+        selectores_acceso = [
+            (By.XPATH, "//a[contains(text(), 'sin identificar')]"),
+            (By.XPATH, "//a[contains(text(), 'Sin identificar')]"),
+            (By.XPATH, "//a[contains(text(), 'SIN IDENTIFICAR')]"),
+            (By.XPATH, "//button[contains(text(), 'sin identificar')]"),
+            (By.XPATH, "//button[contains(text(), 'Sin identificar')]"),
+            (By.XPATH, "//*[contains(text(), 'Acceso sin identificar')]"),
+            (By.XPATH, "//*[contains(text(), 'acceso sin identificar')]"),
+            (By.XPATH, "//a[contains(@href, 'sinIdentificar')]"),
+            (By.XPATH, "//a[contains(@href, 'anonimo')]"),
+            (By.XPATH, "//input[@value='Acceso sin identificar']"),
+            (By.CSS_SELECTOR, "a[href*='sinIdentificar']"),
+            (By.CSS_SELECTOR, "a[href*='anonimo']"),
+            (By.CSS_SELECTOR, ".acceso-anonimo"),
+            (By.CSS_SELECTOR, ".sin-identificar"),
+            (By.LINK_TEXT, "Acceso sin identificar"),
+            (By.PARTIAL_LINK_TEXT, "sin identificar"),
+        ]
+
+        for by, value in selectores_acceso:
+            try:
+                elemento = self.driver.find_element(by, value)
+                if elemento.is_displayed():
+                    self._safe_click(elemento)
+                    logger.info("Acceso sin identificar seleccionado")
+                    time.sleep(2)
+                    return True
+            except NoSuchElementException:
+                continue
+            except Exception:
+                continue
+
+        # Intentar buscar por imagen o icono
+        try:
+            elementos = self.driver.find_elements(By.TAG_NAME, "a")
+            for elem in elementos:
+                texto = elem.text.lower()
+                if "sin identificar" in texto or "anónimo" in texto or "anonimo" in texto:
+                    self._safe_click(elem)
+                    logger.info("Acceso sin identificar seleccionado (búsqueda general)")
+                    time.sleep(2)
+                    return True
+        except Exception:
+            pass
+
+        logger.warning("No se encontró la opción de acceso sin identificar")
+        return False
+
     def seleccionar_categoria(self) -> bool:
         """Selecciona la categoría del trámite (ej: Padrón)."""
         categoria = self.config.get('tramite', {}).get('categoria', 'Padrón')
@@ -630,23 +722,31 @@ class MadridAppointmentBot:
             if not self.navegar_a_pagina_inicial():
                 return False
 
-            # Paso 2: Seleccionar categoría
+            # Paso 2: Aceptar cookies
+            self.aceptar_cookies()
+
+            # Paso 3: Seleccionar acceso sin identificar
+            if not self.seleccionar_acceso_sin_identificar():
+                logger.warning("No se pudo seleccionar acceso sin identificar")
+                # Continuar de todos modos, puede que no sea necesario
+
+            # Paso 4: Seleccionar categoría
             if not self.seleccionar_categoria():
                 logger.warning("No se pudo seleccionar la categoría")
                 # Continuar de todos modos, puede que ya esté seleccionada
 
-            # Paso 3: Seleccionar trámite
+            # Paso 5: Seleccionar trámite
             if not self.seleccionar_tramite():
                 logger.warning("No se pudo seleccionar el trámite")
 
-            # Paso 4: Continuar
+            # Paso 6: Continuar
             self.hacer_click_continuar()
 
-            # Paso 5: Seleccionar oficina si es necesario
+            # Paso 7: Seleccionar oficina si es necesario
             self.seleccionar_oficina()
             self.hacer_click_continuar()
 
-            # Paso 6: Buscar citas disponibles
+            # Paso 8: Buscar citas disponibles
             citas = self.buscar_citas_disponibles()
 
             if not citas:
@@ -654,7 +754,7 @@ class MadridAppointmentBot:
                 self._notify("No hay citas disponibles. Seguiré intentando...")
                 return False
 
-            # Paso 7: Seleccionar una cita
+            # Paso 9: Seleccionar una cita
             for cita in citas:
                 try:
                     self._safe_click(cita['elemento'])
@@ -664,20 +764,20 @@ class MadridAppointmentBot:
                 except Exception:
                     continue
 
-            # Paso 8: Seleccionar hora
+            # Paso 10: Seleccionar hora
             self.seleccionar_hora()
             self.hacer_click_continuar()
 
-            # Paso 9: Rellenar datos personales
+            # Paso 11: Rellenar datos personales
             self.rellenar_datos_personales()
 
-            # Paso 10: Aceptar términos
+            # Paso 12: Aceptar términos
             self.aceptar_terminos()
 
-            # Paso 11: Confirmar
+            # Paso 13: Confirmar
             self.confirmar_cita()
 
-            # Paso 12: Verificar éxito
+            # Paso 14: Verificar éxito
             if self.verificar_cita_exitosa():
                 self.cita_conseguida = True
                 screenshot = self.capturar_pantalla("cita_confirmada.png")

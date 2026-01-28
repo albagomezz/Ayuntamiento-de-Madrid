@@ -324,27 +324,43 @@ class MadridAppointmentBot:
         """Hace clic en 'consultar la oficina con cita más temprana'."""
         logger.info("Buscando enlace 'oficina con cita más temprana'...")
 
-        selectores = [
-            (By.XPATH, "//a[contains(text(), 'cita más temprana')]"),
-            (By.XPATH, "//a[contains(text(), 'cita mas temprana')]"),
-            (By.XPATH, "//a[contains(text(), 'oficina con cita')]"),
-            (By.PARTIAL_LINK_TEXT, "cita más temprana"),
-            (By.PARTIAL_LINK_TEXT, "cita mas temprana"),
-            (By.CSS_SELECTOR, "a[href*='temprana']"),
-        ]
+        try:
+            time.sleep(1)
 
-        for by, value in selectores:
-            try:
-                elemento = self.driver.find_element(by, value)
-                if elemento.is_displayed():
-                    self._safe_click(elemento)
-                    logger.info("Enlace 'oficina con cita más temprana' clickeado")
+            # Buscar todos los enlaces en la página
+            enlaces = self.driver.find_elements(By.TAG_NAME, "a")
+            for enlace in enlaces:
+                texto = enlace.text.lower()
+                if "temprana" in texto or "más temprana" in texto:
+                    self._safe_click(enlace)
+                    logger.info(f"Enlace clickeado: {enlace.text}")
                     time.sleep(2)
                     return True
-            except NoSuchElementException:
-                continue
-            except Exception:
-                continue
+
+            # También buscar por el icono de calendario que está al lado
+            iconos = self.driver.find_elements(By.CSS_SELECTOR, "a i, a img, a svg")
+            for icono in iconos:
+                padre = icono.find_element(By.XPATH, "..")
+                if padre.tag_name == "a":
+                    texto_padre = padre.text.lower()
+                    href = padre.get_attribute("href") or ""
+                    if "temprana" in texto_padre or "temprana" in href:
+                        self._safe_click(padre)
+                        logger.info("Enlace con icono clickeado")
+                        time.sleep(2)
+                        return True
+
+            # Buscar cualquier elemento clickeable con "temprana"
+            elementos = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'temprana')]")
+            for elem in elementos:
+                if elem.is_displayed():
+                    self._safe_click(elem)
+                    logger.info(f"Elemento con 'temprana' clickeado")
+                    time.sleep(2)
+                    return True
+
+        except Exception as e:
+            logger.error(f"Error buscando enlace: {e}")
 
         logger.warning("No se encontró el enlace de cita más temprana")
         return False
@@ -365,6 +381,7 @@ class MadridAppointmentBot:
                 "inténtelo de nuevo más tarde",
                 "intentelo de nuevo mas tarde",
                 "no hay hueco disponible",
+                "seleccione otro trámite",
             ]
 
             for mensaje in mensajes_sin_citas:
@@ -372,9 +389,30 @@ class MadridAppointmentBot:
                     logger.info(f"No hay citas: '{mensaje}'")
                     return False
 
-            # Si no encontramos mensaje de error, probablemente hay citas
-            logger.info("¡Posiblemente hay citas disponibles!")
-            return True
+            # Verificar que realmente estamos en una página de citas
+            # (debe haber un calendario, campo DNI, o lista de horas)
+            indicadores_citas = [
+                "calendario",
+                "seleccione fecha",
+                "seleccione día",
+                "horas disponibles",
+                "introduzca su dni",
+                "introduzca su nif",
+            ]
+
+            for indicador in indicadores_citas:
+                if indicador in page_source:
+                    logger.info(f"¡Hay citas disponibles! Indicador: '{indicador}'")
+                    return True
+
+            # Si estamos en la página de selección de trámite sin mensaje de error,
+            # puede que aún no hayamos llegado a la verificación
+            if "seleccione el trámite" in page_source or "cita previa por trámite" in page_source:
+                logger.info("Aún en página de selección de trámite")
+                return False
+
+            logger.info("No se detectó mensaje de error ni página de citas")
+            return False
 
         except Exception as e:
             logger.error(f"Error verificando disponibilidad: {e}")

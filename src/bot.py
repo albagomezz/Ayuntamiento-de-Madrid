@@ -354,6 +354,37 @@ class MadridAppointmentBot:
         logger.warning("No se encontró el enlace de cita más temprana")
         return False
 
+    def verificar_hay_citas_disponibles(self) -> bool:
+        """Verifica si hay citas disponibles o aparece mensaje de 'no hay hueco'."""
+        logger.info("Verificando si hay citas disponibles...")
+
+        try:
+            time.sleep(2)
+            page_source = self.driver.page_source.lower()
+
+            # Mensajes que indican que NO hay citas
+            mensajes_sin_citas = [
+                "no se ha encontrado hueco disponible",
+                "no hay citas disponibles",
+                "no existen huecos",
+                "inténtelo de nuevo más tarde",
+                "intentelo de nuevo mas tarde",
+                "no hay hueco disponible",
+            ]
+
+            for mensaje in mensajes_sin_citas:
+                if mensaje in page_source:
+                    logger.info(f"No hay citas: '{mensaje}'")
+                    return False
+
+            # Si no encontramos mensaje de error, probablemente hay citas
+            logger.info("¡Posiblemente hay citas disponibles!")
+            return True
+
+        except Exception as e:
+            logger.error(f"Error verificando disponibilidad: {e}")
+            return False
+
     def introducir_dni_busqueda(self) -> bool:
         """Introduce el DNI en el campo de búsqueda de citas."""
         dni = self.config.get('personal', {}).get('dni', '')
@@ -799,36 +830,52 @@ class MadridAppointmentBot:
             # Paso 6: Clic en "consultar la oficina con cita más temprana"
             self.click_oficina_cita_temprana()
 
-            # Paso 7: Introducir DNI
-            self.introducir_dni_busqueda()
-
-            # Paso 8: Clic en Siguiente/Buscar
-            self.hacer_click_siguiente()
-
-            # Paso 9: Buscar citas disponibles
-            citas = self.buscar_citas_disponibles()
-
-            if not citas:
+            # Paso 7: Verificar si hay citas disponibles
+            if not self.verificar_hay_citas_disponibles():
                 logger.info("No hay citas disponibles en este momento")
-                self._notify("No hay citas disponibles. Seguiré intentando...")
                 return False
 
+            # ¡HAY CITAS DISPONIBLES! Notificar inmediatamente
+            logger.info("=" * 50)
+            logger.info("¡¡¡ CITAS DISPONIBLES !!!")
+            logger.info("=" * 50)
+
+            # Capturar pantalla como evidencia
+            screenshot = self.capturar_pantalla("citas_disponibles.png")
+
+            # Notificar al usuario
+            mensaje = f"🎉 ¡HAY CITAS DISPONIBLES!\n\nEntra ahora a la web para reservar tu cita.\n\nhttps://servpub.madrid.es/GNSIS_WBCIUDADANO/tramite.do\n\nCaptura guardada: {screenshot}"
+            self._notify(mensaje, is_success=True)
+
+            # Marcar como éxito para detener el bot
+            self.cita_conseguida = True
+            return True
+
+            # --- El código de abajo se podría usar para reserva automática ---
+            # Por ahora solo notificamos que hay citas
+
+            # Paso 8: Introducir DNI (si no se introdujo antes)
+            # self.introducir_dni_busqueda()
+
+            # Paso 9: Buscar citas disponibles en calendario
+            # citas = self.buscar_citas_disponibles()
+
             # Paso 10: Seleccionar una cita
-            for cita in citas:
-                try:
-                    self._safe_click(cita['elemento'])
-                    logger.info(f"Cita seleccionada: {cita['fecha']}")
-                    time.sleep(1)
-                    break
-                except Exception:
-                    continue
+            # for cita in citas:
+            #     try:
+            #         self._safe_click(cita['elemento'])
+            #         logger.info(f"Cita seleccionada: {cita['fecha']}")
+            #         time.sleep(1)
+            #         break
+            #     except Exception:
+            #         continue
 
             # Paso 11: Seleccionar hora
-            self.seleccionar_hora()
-            self.hacer_click_siguiente()
+            # self.seleccionar_hora()
+            # self.hacer_click_siguiente()
 
             # Paso 12: Rellenar datos personales
-            self.rellenar_datos_personales()
+            # self.rellenar_datos_personales()
 
             # Paso 13: Aceptar términos
             self.aceptar_terminos()

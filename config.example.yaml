@@ -33,12 +33,12 @@ horario:
 
 # Configuración del bot
 bot:
-  # Intervalo entre comprobaciones (en segundos)
-  intervalo_comprobacion: 30
-  # Número máximo de reintentos por sesión
-  max_reintentos: 5
-  # Modo headless (sin ventana visible)
-  headless: false
+  # Intervalo entre comprobaciones (en segundos) - 120 = 2 minutos
+  intervalo_comprobacion: 120
+  # Número máximo de reintentos (1000 = ~33 horas con intervalo de 2 min)
+  max_reintentos: 1000
+  # Modo headless (sin ventana visible) - true para ejecutar en segundo plano
+  headless: true
   # Timeout para cargar páginas (segundos)
   timeout: 30
 

@@ -220,53 +220,60 @@ class MadridAppointmentBot:
         return False
 
     def seleccionar_categoria(self) -> bool:
-        """Selecciona la categoría del trámite (ej: Padrón)."""
-        categoria = self.config.get('tramite', {}).get('categoria', 'Padrón')
+        """Selecciona la categoría del trámite (ej: Padrón y censo)."""
+        categoria = self.config.get('tramite', {}).get('categoria', 'Padrón y censo')
         logger.info(f"Buscando categoría: {categoria}")
 
         try:
-            # Esperar a que cargue el selector de categorías
             time.sleep(2)
 
-            # Intentar diferentes selectores comunes
-            selectores = [
-                (By.ID, "categoria"),
-                (By.ID, "idCategoria"),
-                (By.NAME, "categoria"),
-                (By.CSS_SELECTOR, "select[name*='categoria']"),
-                (By.CSS_SELECTOR, "select[id*='categoria']"),
-                (By.XPATH, "//select[contains(@id, 'ategoria')]"),
-            ]
-
-            for by, value in selectores:
-                try:
-                    select_element = self.wait.until(EC.presence_of_element_located((by, value)))
-                    select = Select(select_element)
-
-                    # Buscar la opción que contenga el texto de la categoría
-                    for option in select.options:
-                        if categoria.lower() in option.text.lower():
-                            select.select_by_visible_text(option.text)
-                            logger.info(f"Categoría seleccionada: {option.text}")
-                            time.sleep(1)
-                            return True
-
-                except (TimeoutException, NoSuchElementException):
-                    continue
-
-            # Intentar buscar como enlaces o botones
+            # Primero intentar con select tradicional
             try:
-                elementos = self.driver.find_elements(By.XPATH, f"//*[contains(text(), '{categoria}')]")
-                for elem in elementos:
-                    if elem.is_displayed():
-                        self._safe_click(elem)
-                        logger.info(f"Categoría clickeada: {categoria}")
+                select_element = self.driver.find_element(By.CSS_SELECTOR, "select")
+                select = Select(select_element)
+                for option in select.options:
+                    if categoria.lower() in option.text.lower():
+                        select.select_by_visible_text(option.text)
+                        logger.info(f"Categoría seleccionada: {option.text}")
                         time.sleep(1)
                         return True
             except Exception:
                 pass
 
-            logger.warning(f"No se encontró la categoría: {categoria}")
+            # Si no es select tradicional, buscar dropdown de tipo span/div clickeable
+            # Primero hacer clic en el dropdown para abrirlo
+            dropdown_selectores = [
+                (By.CSS_SELECTOR, "span.select2-selection"),
+                (By.CSS_SELECTOR, ".select2-container"),
+                (By.CSS_SELECTOR, "[class*='categoria'] .select2"),
+                (By.XPATH, "//span[contains(@class, 'select2')]"),
+                (By.XPATH, "//label[contains(text(), 'Categoría')]/following-sibling::*//span[contains(@class, 'select2')]"),
+            ]
+
+            for by, value in dropdown_selectores:
+                try:
+                    dropdown = self.driver.find_element(by, value)
+                    if dropdown.is_displayed():
+                        self._safe_click(dropdown)
+                        time.sleep(1)
+
+                        # Buscar la opción en el dropdown abierto
+                        opciones = self.driver.find_elements(By.CSS_SELECTOR, ".select2-results__option")
+                        for opcion in opciones:
+                            if categoria.lower() in opcion.text.lower():
+                                self._safe_click(opcion)
+                                logger.info(f"Categoría seleccionada: {opcion.text}")
+                                time.sleep(1)
+                                return True
+                except Exception:
+                    continue
+
+            # Si ya está seleccionada la categoría correcta, continuar
+            if categoria.lower() in self.driver.page_source.lower():
+                logger.info(f"Categoría ya seleccionada: {categoria}")
+                return True
+
+            logger.warning(f"No se pudo seleccionar la categoría: {categoria}")
             return False
 
         except Exception as e:
@@ -274,51 +281,39 @@ class MadridAppointmentBot:
             return False
 
     def seleccionar_tramite(self) -> bool:
-        """Selecciona el trámite específico (ej: Alta en el padrón)."""
-        tramite = self.config.get('tramite', {}).get('nombre', 'Alta en el padrón')
+        """Selecciona el trámite específico."""
+        tramite = self.config.get('tramite', {}).get('nombre', 'Altas, bajas y cambio de domicilio en Padrón')
         logger.info(f"Buscando trámite: {tramite}")
 
         try:
             time.sleep(2)
 
-            # Intentar diferentes selectores
-            selectores = [
-                (By.ID, "tramite"),
-                (By.ID, "idTramite"),
-                (By.NAME, "tramite"),
-                (By.CSS_SELECTOR, "select[name*='tramite']"),
-                (By.CSS_SELECTOR, "select[id*='tramite']"),
-                (By.XPATH, "//select[contains(@id, 'ramite')]"),
-            ]
+            # Buscar todos los select2 containers (dropdowns)
+            dropdowns = self.driver.find_elements(By.CSS_SELECTOR, "span.select2-selection")
 
-            for by, value in selectores:
+            # El segundo dropdown suele ser el de trámite
+            if len(dropdowns) >= 2:
                 try:
-                    select_element = self.wait.until(EC.presence_of_element_located((by, value)))
-                    select = Select(select_element)
+                    self._safe_click(dropdowns[1])
+                    time.sleep(1)
 
-                    for option in select.options:
-                        if tramite.lower() in option.text.lower():
-                            select.select_by_visible_text(option.text)
-                            logger.info(f"Trámite seleccionado: {option.text}")
+                    # Buscar la opción en el dropdown abierto
+                    opciones = self.driver.find_elements(By.CSS_SELECTOR, ".select2-results__option")
+                    for opcion in opciones:
+                        if tramite.lower() in opcion.text.lower():
+                            self._safe_click(opcion)
+                            logger.info(f"Trámite seleccionado: {opcion.text}")
                             time.sleep(1)
                             return True
+                except Exception:
+                    pass
 
-                except (TimeoutException, NoSuchElementException):
-                    continue
+            # Si ya está seleccionado el trámite correcto, continuar
+            if tramite.lower() in self.driver.page_source.lower():
+                logger.info(f"Trámite ya seleccionado: {tramite}")
+                return True
 
-            # Intentar buscar como enlaces o botones
-            try:
-                elementos = self.driver.find_elements(By.XPATH, f"//*[contains(text(), '{tramite}')]")
-                for elem in elementos:
-                    if elem.is_displayed():
-                        self._safe_click(elem)
-                        logger.info(f"Trámite clickeado: {tramite}")
-                        time.sleep(1)
-                        return True
-            except Exception:
-                pass
-
-            logger.warning(f"No se encontró el trámite: {tramite}")
+            logger.warning(f"No se pudo seleccionar el trámite: {tramite}")
             return False
 
         except Exception as e:

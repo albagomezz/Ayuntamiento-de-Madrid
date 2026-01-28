@@ -325,6 +325,82 @@ class MadridAppointmentBot:
             logger.error(f"Error seleccionando trámite: {e}")
             return False
 
+    def click_oficina_cita_temprana(self) -> bool:
+        """Hace clic en 'consultar la oficina con cita más temprana'."""
+        logger.info("Buscando enlace 'oficina con cita más temprana'...")
+
+        selectores = [
+            (By.XPATH, "//a[contains(text(), 'cita más temprana')]"),
+            (By.XPATH, "//a[contains(text(), 'cita mas temprana')]"),
+            (By.XPATH, "//a[contains(text(), 'oficina con cita')]"),
+            (By.PARTIAL_LINK_TEXT, "cita más temprana"),
+            (By.PARTIAL_LINK_TEXT, "cita mas temprana"),
+            (By.CSS_SELECTOR, "a[href*='temprana']"),
+        ]
+
+        for by, value in selectores:
+            try:
+                elemento = self.driver.find_element(by, value)
+                if elemento.is_displayed():
+                    self._safe_click(elemento)
+                    logger.info("Enlace 'oficina con cita más temprana' clickeado")
+                    time.sleep(2)
+                    return True
+            except NoSuchElementException:
+                continue
+            except Exception:
+                continue
+
+        logger.warning("No se encontró el enlace de cita más temprana")
+        return False
+
+    def introducir_dni_busqueda(self) -> bool:
+        """Introduce el DNI en el campo de búsqueda de citas."""
+        dni = self.config.get('personal', {}).get('dni', '')
+        logger.info(f"Introduciendo DNI para búsqueda...")
+
+        if not dni:
+            logger.warning("DNI no configurado")
+            return False
+
+        try:
+            time.sleep(1)
+
+            selectores = [
+                (By.ID, "dni"),
+                (By.ID, "nif"),
+                (By.NAME, "dni"),
+                (By.NAME, "nif"),
+                (By.CSS_SELECTOR, "input[id*='dni']"),
+                (By.CSS_SELECTOR, "input[id*='nif']"),
+                (By.CSS_SELECTOR, "input[name*='dni']"),
+                (By.CSS_SELECTOR, "input[name*='nif']"),
+                (By.CSS_SELECTOR, "input[placeholder*='DNI']"),
+                (By.CSS_SELECTOR, "input[placeholder*='NIF']"),
+                (By.XPATH, "//input[@type='text']"),
+            ]
+
+            for by, value in selectores:
+                try:
+                    elemento = self.driver.find_element(by, value)
+                    if elemento.is_displayed():
+                        elemento.clear()
+                        elemento.send_keys(dni)
+                        logger.info(f"DNI introducido: {dni[:4]}****")
+                        time.sleep(1)
+                        return True
+                except NoSuchElementException:
+                    continue
+                except Exception:
+                    continue
+
+            logger.warning("No se encontró campo para DNI")
+            return False
+
+        except Exception as e:
+            logger.error(f"Error introduciendo DNI: {e}")
+            return False
+
     def hacer_click_siguiente(self) -> bool:
         """Hace clic en el botón de Siguiente."""
         logger.info("Buscando botón Siguiente...")
@@ -720,13 +796,16 @@ class MadridAppointmentBot:
             if not self.seleccionar_tramite():
                 logger.warning("No se pudo seleccionar el trámite")
 
-            # Paso 6: Seleccionar oficina (misma página)
-            self.seleccionar_oficina()
+            # Paso 6: Clic en "consultar la oficina con cita más temprana"
+            self.click_oficina_cita_temprana()
 
-            # Paso 7: Clic en Siguiente
+            # Paso 7: Introducir DNI
+            self.introducir_dni_busqueda()
+
+            # Paso 8: Clic en Siguiente/Buscar
             self.hacer_click_siguiente()
 
-            # Paso 8: Buscar citas disponibles
+            # Paso 9: Buscar citas disponibles
             citas = self.buscar_citas_disponibles()
 
             if not citas:
@@ -734,7 +813,7 @@ class MadridAppointmentBot:
                 self._notify("No hay citas disponibles. Seguiré intentando...")
                 return False
 
-            # Paso 9: Seleccionar una cita
+            # Paso 10: Seleccionar una cita
             for cita in citas:
                 try:
                     self._safe_click(cita['elemento'])
@@ -744,20 +823,20 @@ class MadridAppointmentBot:
                 except Exception:
                     continue
 
-            # Paso 10: Seleccionar hora
+            # Paso 11: Seleccionar hora
             self.seleccionar_hora()
             self.hacer_click_siguiente()
 
-            # Paso 11: Rellenar datos personales
+            # Paso 12: Rellenar datos personales
             self.rellenar_datos_personales()
 
-            # Paso 12: Aceptar términos
+            # Paso 13: Aceptar términos
             self.aceptar_terminos()
 
-            # Paso 13: Confirmar
+            # Paso 14: Confirmar
             self.confirmar_cita()
 
-            # Paso 14: Verificar éxito
+            # Paso 15: Verificar éxito
             if self.verificar_cita_exitosa():
                 self.cita_conseguida = True
                 screenshot = self.capturar_pantalla("cita_confirmada.png")

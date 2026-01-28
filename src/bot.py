@@ -227,7 +227,7 @@ class MadridAppointmentBot:
         try:
             time.sleep(2)
 
-            # Buscar dropdowns Select2
+            # SIEMPRE intentar seleccionar, aunque parezca ya seleccionada
             dropdowns = self.driver.find_elements(By.CSS_SELECTOR, "span.select2-selection")
             if len(dropdowns) >= 1:
                 self._safe_click(dropdowns[0])
@@ -236,6 +236,7 @@ class MadridAppointmentBot:
                 # Escribir en campo de búsqueda
                 try:
                     search = self.driver.find_element(By.CSS_SELECTOR, "input.select2-search__field")
+                    search.clear()
                     search.send_keys("Padrón")
                     time.sleep(1)
                 except Exception:
@@ -244,16 +245,11 @@ class MadridAppointmentBot:
                 # Seleccionar opción
                 opciones = self.driver.find_elements(By.CSS_SELECTOR, ".select2-results__option")
                 for op in opciones:
-                    if categoria.lower() in op.text.lower() and op.is_displayed():
+                    if "padrón" in op.text.lower() and "censo" in op.text.lower():
                         self._safe_click(op)
                         logger.info(f"Categoría seleccionada: {op.text}")
-                        time.sleep(1)
+                        time.sleep(2)  # Esperar a que cargue el trámite
                         return True
-
-            # Si ya está seleccionada
-            if categoria.lower() in self.driver.page_source.lower():
-                logger.info(f"Categoría ya visible: {categoria}")
-                return True
 
             logger.warning(f"No se pudo seleccionar la categoría")
             return False
@@ -270,7 +266,7 @@ class MadridAppointmentBot:
         try:
             time.sleep(2)
 
-            # Buscar dropdowns Select2 - el segundo es el de trámite
+            # SIEMPRE intentar seleccionar
             dropdowns = self.driver.find_elements(By.CSS_SELECTOR, "span.select2-selection")
             if len(dropdowns) >= 2:
                 self._safe_click(dropdowns[1])
@@ -279,6 +275,7 @@ class MadridAppointmentBot:
                 # Escribir en campo de búsqueda para filtrar
                 try:
                     search = self.driver.find_element(By.CSS_SELECTOR, "input.select2-search__field")
+                    search.clear()
                     search.send_keys("Altas")
                     time.sleep(1)
                 except Exception:
@@ -288,16 +285,11 @@ class MadridAppointmentBot:
                 opciones = self.driver.find_elements(By.CSS_SELECTOR, ".select2-results__option")
                 for op in opciones:
                     texto = op.text.lower()
-                    if "altas" in texto and "padrón" in texto and op.is_displayed():
+                    if "altas" in texto and "padrón" in texto:
                         self._safe_click(op)
                         logger.info(f"Trámite seleccionado: {op.text}")
-                        time.sleep(1)
+                        time.sleep(2)  # Esperar a que se habilite el enlace
                         return True
-
-            # Si ya está seleccionado
-            if "altas" in self.driver.page_source.lower() and "padrón" in self.driver.page_source.lower():
-                logger.info(f"Trámite ya visible")
-                return True
 
             logger.warning(f"No se pudo seleccionar el trámite")
             return False
@@ -311,42 +303,39 @@ class MadridAppointmentBot:
         logger.info("Buscando enlace 'oficina con cita más temprana'...")
 
         try:
-            time.sleep(1)
+            # Buscar por ID específico
+            enlace = self.driver.find_element(By.ID, "oficinaCitaTemprana")
 
-            # Buscar todos los enlaces en la página
-            enlaces = self.driver.find_elements(By.TAG_NAME, "a")
-            for enlace in enlaces:
-                texto = enlace.text.lower()
-                if "temprana" in texto or "más temprana" in texto:
+            # Esperar hasta 5 segundos a que se habilite
+            for i in range(10):
+                disabled = enlace.get_attribute("disabled")
+                if disabled is None:
+                    # ¡Está habilitado! Hacer clic
                     self._safe_click(enlace)
-                    logger.info(f"Enlace clickeado: {enlace.text}")
+                    logger.info("Enlace 'cita más temprana' clickeado")
                     time.sleep(2)
                     return True
+                else:
+                    logger.info(f"Enlace aún deshabilitado, esperando... ({i+1}/10)")
+                    time.sleep(0.5)
 
-            # También buscar por el icono de calendario que está al lado
-            iconos = self.driver.find_elements(By.CSS_SELECTOR, "a i, a img, a svg")
-            for icono in iconos:
-                padre = icono.find_element(By.XPATH, "..")
-                if padre.tag_name == "a":
-                    texto_padre = padre.text.lower()
-                    href = padre.get_attribute("href") or ""
-                    if "temprana" in texto_padre or "temprana" in href:
-                        self._safe_click(padre)
-                        logger.info("Enlace con icono clickeado")
-                        time.sleep(2)
-                        return True
+            logger.warning("El enlace sigue deshabilitado después de esperar")
+            return False
 
-            # Buscar cualquier elemento clickeable con "temprana"
+        except NoSuchElementException:
+            logger.warning("No se encontró el enlace por ID")
+
+        # Fallback: buscar por texto
+        try:
             elementos = self.driver.find_elements(By.XPATH, "//*[contains(text(), 'temprana')]")
             for elem in elementos:
-                if elem.is_displayed():
+                if elem.is_displayed() and elem.get_attribute("disabled") is None:
                     self._safe_click(elem)
-                    logger.info(f"Elemento con 'temprana' clickeado")
+                    logger.info("Enlace 'temprana' clickeado (fallback)")
                     time.sleep(2)
                     return True
-
-        except Exception as e:
-            logger.error(f"Error buscando enlace: {e}")
+        except Exception:
+            pass
 
         logger.warning("No se encontró el enlace de cita más temprana")
         return False

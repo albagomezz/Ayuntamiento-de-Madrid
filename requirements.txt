@@ -1,0 +1,8 @@
+# Bot de citas Ayuntamiento de Madrid
+selenium>=4.15.0
+webdriver-manager>=4.0.1
+python-telegram-bot>=20.7
+pyyaml>=6.0.1
+requests>=2.31.0
+schedule>=1.2.1
+colorama>=0.4.6
